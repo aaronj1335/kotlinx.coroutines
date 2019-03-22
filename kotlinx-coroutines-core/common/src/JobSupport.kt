@@ -890,8 +890,14 @@ public open class JobSupport constructor(active: Boolean) : Job, ChildJob, Paren
     }
 
     /**
-     * This function is invoked once when job is being cancelled, fails, or is completed.
-     * It's an optimization for [invokeOnCompletion] with `onCancellation` set to `true`.
+     * This function is invoked once when this job is being cancelled,
+     * similarly to [invokeOnCompletion] with `onCancelling` set to `true`.
+     *
+     * The meaning of [cause] parameter:
+     * * Cause is `null` when job has completed normally.
+     * * Cause is an instance of [CancellationException] when job was cancelled _normally_.
+     *   **It should not be treated as an error**. In particular, it should not be reported to error logs.
+     * * Otherwise, the job had been cancelled or failed with exception.
      *
      * @suppress **This is unstable API and it is subject to change.*
      */

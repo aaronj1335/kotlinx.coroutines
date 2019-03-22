@@ -77,18 +77,6 @@ public abstract class AbstractCoroutine<in T>(
     }
 
     /**
-     * This function is invoked once when this coroutine is cancelled
-     * similarly to [invokeOnCompletion] with `onCancelling` set to `true`.
-     *
-     * The meaning of [cause] parameter:
-     * * Cause is `null` when job has completed normally.
-     * * Cause is an instance of [CancellationException] when job was cancelled _normally_.
-     *   **It should not be treated as an error**. In particular, it should not be reported to error logs.
-     * * Otherwise, the job had been cancelled or failed with exception.
-     */
-    protected override fun onCancellation(cause: Throwable?) {}
-
-    /**
      * This function is invoked once when job was completed normally with the specified [value].
      */
     protected open fun onCompleted(value: T) {}
