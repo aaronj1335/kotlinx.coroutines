@@ -77,19 +77,22 @@ public abstract class AbstractCoroutine<in T>(
     }
 
     /**
-     * This function is invoked once when job was completed normally with the specified [value].
+     * This function is invoked once when job was completed normally with the specified [value],
+     * right before all the waiters for coroutine's completion are notified.
      */
     protected open fun onCompleted(value: T) {}
 
     /**
-     * This function is invoked once when job was cancelled with the specified [cause].
+     * This function is invoked once when job was cancelled with the specified [cause],
+     * right before all the waiters for coroutine's completion are notified.
+     *
      * @param cause The cancellation (failure) cause
      * @param handled `true` if the exception was handled by parent (always `true` when it is a [CancellationException])
      */
     protected open fun onCancelled(cause: Throwable, handled: Boolean) {}
 
     @Suppress("UNCHECKED_CAST")
-    internal override fun onCompletionInternal(state: Any?, mode: Int) {
+    protected final override fun onCompletionInternal(state: Any?) {
         if (state is CompletedExceptionally)
             onCancelled(state.cause, state.handled)
         else

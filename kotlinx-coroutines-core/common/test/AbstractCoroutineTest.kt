@@ -25,7 +25,7 @@ class AbstractCoroutineTest : TestBase() {
 
             override fun onCompleted(value: String) {
                 assertEquals("OK", value)
-                expect(8)
+                expect(6)
             }
 
             override fun onCancelled(cause: Throwable, handled: Boolean) {
@@ -35,12 +35,12 @@ class AbstractCoroutineTest : TestBase() {
 
         coroutine.invokeOnCompletion(onCancelling = true) {
             assertEquals(null, it)
-            expect(6)
+            expect(7)
         }
 
         coroutine.invokeOnCompletion {
             assertEquals(null, it)
-            expect(7)
+            expect(8)
         }
         expect(2)
         coroutine.start()
@@ -69,7 +69,7 @@ class AbstractCoroutineTest : TestBase() {
 
             override fun onCancelled(cause: Throwable, handled: Boolean) {
                 assertTrue(cause is TestException1)
-                expect(9)
+                expect(8)
             }
         }
 
@@ -80,7 +80,7 @@ class AbstractCoroutineTest : TestBase() {
 
         coroutine.invokeOnCompletion {
             assertTrue(it is TestException1)
-            expect(8)
+            expect(9)
         }
 
         expect(2)
