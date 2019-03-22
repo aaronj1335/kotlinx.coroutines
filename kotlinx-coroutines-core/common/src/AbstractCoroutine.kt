@@ -86,6 +86,10 @@ public abstract class AbstractCoroutine<in T>(
      * This function is invoked once when job was cancelled with the specified [cause],
      * right before all the waiters for coroutine's completion are notified.
      *
+     * **Note:** the state of the coroutine might not be final yet in this function and should not be queried.
+     * You can use [completionCause] and [completionCauseHandled] to recover parameters that we passed
+     * to this `onCancelled` invocation only when [isCompleted] returns `true`.
+     *
      * @param cause The cancellation (failure) cause
      * @param handled `true` if the exception was handled by parent (always `true` when it is a [CancellationException])
      */
