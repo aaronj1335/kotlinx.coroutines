@@ -21,7 +21,7 @@ class SuppressionTests : TestBase() {
                 expect(3)
             }
 
-            override fun onCancellation(cause: Throwable?) {
+            override fun onCancelling(cause: Throwable) {
                 assertTrue(cause is ArithmeticException)
                 assertTrue(cause.suppressed.isEmpty())
                 expect(5)

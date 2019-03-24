@@ -119,7 +119,7 @@ private class RxObservableCoroutine<T: Any>(
         }
         /*
            There is no sense to check for `isActive` before doing `unlock`, because cancellation/completion might
-           happen after this check and before `unlock` (see `onCancellation` that does not do anything
+           happen after this check and before `unlock` (see signalCompleted that does not do anything
            if it fails to acquire the lock that we are still holding).
            We have to recheck `isCompleted` after `unlock` anyway.
          */

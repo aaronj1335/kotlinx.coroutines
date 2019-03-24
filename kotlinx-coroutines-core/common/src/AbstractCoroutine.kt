@@ -20,9 +20,8 @@ import kotlin.jvm.*
  *
  * The following methods are available for override:
  *
- * * [onStart] is invoked when coroutine is create in not active state and is [started][Job.start].
- * * [onCancellation] is invoked as soon as coroutine is _failing_, or is cancelled,
- *   or when it completes for any reason.
+ * * [onStart] is invoked when coroutine was created in not active state and is being [started][Job.start].
+ * * [onCancelling] is invoked as soon as coroutine is being cancelled for any reason.
  * * [onCompleted] is invoked when coroutine completes with a value.
  * * [onCancelled] in invoked when coroutines completes with exception (cancelled).
  *

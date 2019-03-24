@@ -98,9 +98,9 @@ public open class JobSupport constructor(active: Boolean) : Job, ChildJob, Paren
          ~ active coroutine is working (or scheduled to execution)
          >> childCancelled / cancelImpl invoked
        ## CANCELLING: state is Finishing, state.rootCause != null
-        ------ cancelling listeners are not admitted anymore, invokeOnCompletion(onCancellation=true) returns NonDisposableHandle
+        ------ cancelling listeners are not admitted anymore, invokeOnCompletion(onCancelling=true) returns NonDisposableHandle
         ------ new children get immediately cancelled, but are still admitted to the list
-         + onCancellation
+         + onCancelling
          + notifyCancelling (invoke all cancelling listeners -- cancel all children, suspended functions resume with exception)
          + cancelParent (rootCause of cancellation is communicated to the parent, parent is cancelled, too)
          ~ waits for completion of coroutine body
@@ -203,7 +203,9 @@ public open class JobSupport constructor(active: Boolean) : Job, ChildJob, Paren
         require(state.isCompleting) // consistency check -- must be marked as completing
         val proposedException = (proposedUpdate as? CompletedExceptionally)?.cause
         // Create the final exception and seal the state so that no more exceptions can be added
+        var wasCancelling = false // KLUDGE: we cannot have contract for our own expect fun synchronized
         val finalException = synchronized(state) {
+            wasCancelling = state.isCancelling
             val exceptions = state.sealLocked(proposedException)
             val finalCause = getFinalRootCause(state, exceptions)
             if (finalCause != null) addSuppressedExceptions(finalCause, exceptions)
@@ -223,10 +225,9 @@ public open class JobSupport constructor(active: Boolean) : Job, ChildJob, Paren
             val handled = cancelParent(finalException) || handleJobException(finalException)
             if (handled) (finalState as CompletedExceptionally).makeHandled()
         }
-        // Process state updates for the final state before the state of the Job is actually set to
-        // the final state to avoid races where outside observer may see the job in the final state,
-        // yet linked states were not updated yet
-        if (!state.isCancelling) onCancellation(finalException)
+        // Process state updates for the final state before the state of the Job is actually set to the final state
+        // to avoid races where outside observer may see the job in the final state, yet exception is not handled yet.
+        if (!wasCancelling && finalException != null) onCancelling(finalException)
         onCompletionInternal(finalState)
         // Then CAS to completed state -> it must succeed
         require(_state.compareAndSet(state, finalState.boxIncomplete())) { "Unexpected state: ${_state.value}, expected: $state, update: $finalState" }
@@ -262,7 +263,6 @@ public open class JobSupport constructor(active: Boolean) : Job, ChildJob, Paren
         check(state is Empty || state is JobNode<*>) // only simple state without lists where children can concurrently add
         check(update !is CompletedExceptionally) // only for normal completion
         if (!_state.compareAndSet(state, update.boxIncomplete())) return false
-        onCancellation(null) // simple state is not a failure
         onCompletionInternal(update)
         completeStateFinalization(state, update, mode)
         return true
@@ -303,7 +303,7 @@ public open class JobSupport constructor(active: Boolean) : Job, ChildJob, Paren
 
     private fun notifyCancelling(list: NodeList, cause: Throwable) {
         // first cancel our own children
-        onCancellation(cause)
+        onCancelling(cause)
         notifyHandlers<JobCancellingNode<*>>(list, cause)
         // then cancel parent
         cancelParent(cause) // tentative cancellation -- does not matter if there is no parent
@@ -671,7 +671,7 @@ public open class JobSupport constructor(active: Boolean) : Job, ChildJob, Paren
                             val causeException = causeExceptionCache ?: createCauseException(cause).also { causeExceptionCache = it }
                             state.addExceptionLocked(causeException)
                         }
-                        // take cause for notification is was not cancelling before
+                        // take cause for notification if was not in cancelling state before
                         state.rootCause.takeIf { !wasCancelling }
                     }
                     notifyRootCause?.let { notifyCancelling(state.list, it) }
@@ -890,18 +890,13 @@ public open class JobSupport constructor(active: Boolean) : Job, ChildJob, Paren
     }
 
     /**
-     * This function is invoked once when this job is being cancelled,
-     * similarly to [invokeOnCompletion] with `onCancelling` set to `true`.
-     *
-     * The meaning of [cause] parameter:
-     * * Cause is `null` when job has completed normally.
-     * * Cause is an instance of [CancellationException] when job was cancelled _normally_.
-     *   **It should not be treated as an error**. In particular, it should not be reported to error logs.
-     * * Otherwise, the job had been cancelled or failed with exception.
+     * This function is invoked once as soon as this job is being cancelled for any reason.
+     * The specified [cause] is not the final cancellation cause of this job.
+     * A job may produce other exceptions while it is failing and the final cause might be different.
      *
      * @suppress **This is unstable API and it is subject to change.*
      */
-    protected open fun onCancellation(cause: Throwable?) {}
+    protected open fun onCancelling(cause: Throwable) {}
 
     /**
      * When this function returns `true` the parent is cancelled on cancellation of this job.
